@@ -1,0 +1,1166 @@
+global proc AutoTexture_add(){
+    global string $AutoTexture_Surface;
+    global string $AutoTexture_MSurface;
+    global string $AutoTexture_udimcbox;
+    global string $AutoTexture_BCname;
+    global string $AutoTexture_Metalname;
+    global string $AutoTexture_Roughname;
+    global string $AutoTexture_Normalname;
+    global string $AutoTexture_Dispname;
+    global string $AutoTexture_ext;
+    string $texture[];
+
+    if(`optionVar -ex "RBtnmemory"`) $mode = `optionVar -q "RBtnmemory"`;
+    else $mode = 1;
+    print $mode;
+
+    MLdeleteUnused;
+    // 選択されたオブジェクトを取得
+    string $selectedObjects[] = `ls -selection`;
+    $AutoTexture_Surface = `textField -q -tx tFname`;
+    $AutoTexture_MSurface = "M_" + $AutoTexture_Surface;
+    // 選択されたオブジェクトが存在するか確認
+    if (size($selectedObjects) > 0) {
+        // マテリアルを割り当てる
+        if($mode == 1) shadingNode -asShader "aiStandardSurface" -name $AutoTexture_MSurface;
+        if($mode == 2) shadingNode -asShader "VRayMtl"           -name $AutoTexture_MSurface;
+
+        // 選択された各オブジェクトにシェーダーを割り当てる
+        for ($object in $selectedObjects) {
+        // オブジェクトにシェーダーを割り当てる
+        select $object;
+        hyperShade -assign $AutoTexture_MSurface;
+        }
+
+        $filepath = `workspace -q -rootDirectory`;
+        string $texpath[] = `fileDialog2 -fm 3 -dir ($filepath + "sourceimages/")`;
+        string $texfile[] = `getFileList -fld $texpath`;
+
+        if (`checkBox -q -v $AutoTexture_udimcbox`) {
+            int $i = 0;
+            for ($tex in $texfile) {
+                if (`gmatch $tex ("*" + $AutoTexture_BCname + "*" + "1001" + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Metalname + "*" + "1001" + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Roughname + "*" + "1001" + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Normalname + "*" + "1001" + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Dispname + "*" + "1001" + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+            }
+        }
+        else{
+            int $i = 0;
+            for ($tex in $texfile) {
+                if (`gmatch $tex ("*" + $AutoTexture_BCname + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Metalname + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Roughname + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Normalname + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+                else if (`gmatch $tex ("*" + $AutoTexture_Dispname + "*" + $AutoTexture_ext)`) {
+                    $texture[$i] = $tex;
+                    $i++;
+                }
+            }
+        }
+    
+        for ($buf in $texture) {
+            // Base Colorにファイルとplace2dTextureを接続
+            if(`gmatch $buf ("*" + $AutoTexture_BCname + "*")`){
+                string $baseColorFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_baseColorFile")`;
+                string $baseColorPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_baseColorPlace2d")`;
+                // ファイル接続テンプレ
+                connectAttr -force ($baseColorPlace2dTexture + ".coverage") ($baseColorFileTexture + ".coverage");
+                connectAttr -force ($baseColorPlace2dTexture + ".translateFrame") ($baseColorFileTexture + ".translateFrame");
+                connectAttr -force ($baseColorPlace2dTexture + ".rotateFrame") ($baseColorFileTexture + ".rotateFrame");
+                connectAttr -force ($baseColorPlace2dTexture + ".mirrorU") ($baseColorFileTexture + ".mirrorU");
+                connectAttr -force ($baseColorPlace2dTexture + ".mirrorV") ($baseColorFileTexture + ".mirrorV");
+                connectAttr -force ($baseColorPlace2dTexture + ".stagger") ($baseColorFileTexture + ".stagger");
+                connectAttr -force ($baseColorPlace2dTexture + ".wrapU") ($baseColorFileTexture + ".wrapU");
+                connectAttr -force ($baseColorPlace2dTexture + ".wrapV") ($baseColorFileTexture + ".wrapV");
+                connectAttr -force ($baseColorPlace2dTexture + ".repeatUV") ($baseColorFileTexture + ".repeatUV");
+                connectAttr -force ($baseColorPlace2dTexture + ".offset") ($baseColorFileTexture + ".offset");
+                connectAttr -force ($baseColorPlace2dTexture + ".outUV") ($baseColorFileTexture + ".uvCoord");
+                // -----------------------------------------------------------------------------------------
+                setAttr -type "string" ($baseColorFileTexture + ".fileTextureName") $buf;
+                if($mode==1){
+                    string $baseColorCorrect = `shadingNode -asUtility aiColorCorrect -name ($AutoTexture_Surface + "_baseColorCorrect")`;
+                    connectAttr -force ($baseColorFileTexture + ".outColor") ($baseColorCorrect + ".input");
+                    connectAttr -force ($baseColorCorrect + ".outColor") ($AutoTexture_MSurface + ".baseColor");
+                }
+                if($mode==2){
+                    string $baseColorCorrect = `shadingNode -asTexture VRayColorCorrection -name ($AutoTexture_Surface + "_baseColorCorrect")`;
+                    connectAttr -force ($baseColorFileTexture + ".outColor") ($baseColorCorrect + ".texture_map");
+                    connectAttr -force ($baseColorCorrect + ".outColor") ($AutoTexture_MSurface + ".color");
+                }
+                if (`checkBox -q -v $AutoTexture_udimcbox`)
+                {
+                    setAttr ($baseColorFileTexture + ".uvTilingMode") 3;
+                    generateUvTilePreview $baseColorFileTexture;
+                }else{
+                    setAttr ($baseColorFileTexture + ".uvTilingMode") 0;
+                }
+            }
+            // Metalnessにファイルとplace2dTextureを接続
+            if( `gmatch $buf ("*" + $AutoTexture_Metalname + "*")`){
+                string $metalnessFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_metalnessFile")`;
+                string $metalnessPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface +"_metalnessPlace2d")`;
+                string $metalnessluminance = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_metalnessluminance")`;
+                string $metalnessblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_metalnessblendColors")`;
+                // ファイル接続テンプレ
+                connectAttr -force ($metalnessPlace2dTexture + ".coverage") ($metalnessFileTexture + ".coverage");
+                connectAttr -force ($metalnessPlace2dTexture + ".translateFrame") ($metalnessFileTexture + ".translateFrame");
+                connectAttr -force ($metalnessPlace2dTexture + ".rotateFrame") ($metalnessFileTexture + ".rotateFrame");
+                connectAttr -force ($metalnessPlace2dTexture + ".mirrorU") ($metalnessFileTexture + ".mirrorU");
+                connectAttr -force ($metalnessPlace2dTexture + ".mirrorV") ($metalnessFileTexture + ".mirrorV");
+                connectAttr -force ($metalnessPlace2dTexture + ".stagger") ($metalnessFileTexture + ".stagger");
+                connectAttr -force ($metalnessPlace2dTexture + ".wrapU") ($metalnessFileTexture + ".wrapU");
+                connectAttr -force ($metalnessPlace2dTexture + ".wrapV") ($metalnessFileTexture + ".wrapV");
+                connectAttr -force ($metalnessPlace2dTexture + ".repeatUV") ($metalnessFileTexture + ".repeatUV");
+                connectAttr -force ($metalnessPlace2dTexture + ".offset") ($metalnessFileTexture + ".offset");
+                connectAttr -force ($metalnessPlace2dTexture + ".outUV") ($metalnessFileTexture + ".uvCoord");
+                // -----------------------------------------------------------------------------------------
+                connectAttr -force ($metalnessFileTexture + ".outAlpha") ($metalnessblendColors + ".blender");
+                connectAttr -force ($metalnessblendColors + ".output") ($metalnessluminance + ".value");
+                connectAttr -force ($metalnessluminance + ".outValue") ($AutoTexture_MSurface + ".metalness");
+                setAttr -type "string" ($metalnessFileTexture + ".fileTextureName") $buf;
+                setAttr ($metalnessFileTexture + ".colorSpace") -type "string" "Raw";
+                setAttr ($metalnessblendColors + ".color1") -type double3 1 1 1 ;
+                setAttr ($metalnessblendColors + ".color2") -type double3 0 0 0 ;
+                if (`checkBox -q -v $AutoTexture_udimcbox`)
+                {
+                    setAttr ($metalnessFileTexture + ".uvTilingMode") 3;
+                    generateUvTilePreview $metalnessFileTexture;
+                }else{
+                    setAttr ($metalnessFileTexture + ".uvTilingMode") 0;
+                }
+            }
+            // roughnessにファイルとplace2dTextureを接続
+            if( `gmatch $buf ("*" + $AutoTexture_Roughname + "*")`){
+                string $roughnessFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_roughnessFile")`;
+                string $roughnessPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_roughnessPlace2d")`;
+                string $roughnessluminance = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_roughnessluminance")`;
+                string $roughnessblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_roughnessblendColors")`;
+                // ファイル接続テンプレ
+                connectAttr -force ($roughnessPlace2dTexture + ".coverage") ($roughnessFileTexture + ".coverage");
+                connectAttr -force ($roughnessPlace2dTexture + ".translateFrame") ($roughnessFileTexture + ".translateFrame");
+                connectAttr -force ($roughnessPlace2dTexture + ".rotateFrame") ($roughnessFileTexture + ".rotateFrame");
+                connectAttr -force ($roughnessPlace2dTexture + ".mirrorU") ($roughnessFileTexture + ".mirrorU");
+                connectAttr -force ($roughnessPlace2dTexture + ".mirrorV") ($roughnessFileTexture + ".mirrorV");
+                connectAttr -force ($roughnessPlace2dTexture + ".stagger") ($roughnessFileTexture + ".stagger");
+                connectAttr -force ($roughnessPlace2dTexture + ".wrapU") ($roughnessFileTexture + ".wrapU");
+                connectAttr -force ($roughnessPlace2dTexture + ".wrapV") ($roughnessFileTexture + ".wrapV");
+                connectAttr -force ($roughnessPlace2dTexture + ".repeatUV") ($roughnessFileTexture + ".repeatUV");
+                connectAttr -force ($roughnessPlace2dTexture + ".offset") ($roughnessFileTexture + ".offset");
+                connectAttr -force ($roughnessPlace2dTexture + ".outUV") ($roughnessFileTexture + ".uvCoord");
+                // -----------------------------------------------------------------------------------------
+                connectAttr -force ($roughnessFileTexture + ".outAlpha") ($roughnessblendColors + ".blender");
+                connectAttr -force ($roughnessblendColors + ".output") ($roughnessluminance + ".value");
+                if($mode==1)connectAttr -force ($roughnessluminance + ".outValue") ($AutoTexture_MSurface + ".specularRoughness");
+                if($mode==2){
+                    setAttr ($AutoTexture_MSurface + ".useRoughness") 1;
+                    connectAttr -force ($roughnessluminance + ".outValue") ($AutoTexture_MSurface + ".reflectionGlossiness");
+                }
+                setAttr -type "string" ($roughnessFileTexture + ".fileTextureName") $buf;
+                setAttr ($roughnessFileTexture + ".colorSpace") -type "string" "Raw";
+                setAttr ($roughnessblendColors + ".color1") -type double3 1 1 1 ;
+                setAttr ($roughnessblendColors + ".color2") -type double3 0 0 0 ;
+                if (`checkBox -q -v $AutoTexture_udimcbox`)
+                {
+                    setAttr ($roughnessFileTexture + ".uvTilingMode") 3;
+                    generateUvTilePreview $roughnessFileTexture;
+                }else{
+                    setAttr ($roughnessFileTexture + ".uvTilingMode") 0;
+                }
+            }
+            // Normalにファイルとplace2dTextureを接続
+            if( `gmatch $buf ("*" + $AutoTexture_Normalname + "*")`){
+                string $normalFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_normalFile")`;
+                string $normalPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_normalPlace2d")`;
+                string $normalmap = `shadingNode -asUtility aiNormalMap -name ($AutoTexture_Surface + "_aiNormalMap")`;
+                // ファイル接続テンプレ
+                connectAttr -force ($normalPlace2dTexture + ".coverage") ($normalFileTexture + ".coverage");
+                connectAttr -force ($normalPlace2dTexture + ".translateFrame") ($normalFileTexture + ".translateFrame");
+                connectAttr -force ($normalPlace2dTexture + ".rotateFrame") ($normalFileTexture + ".rotateFrame");
+                connectAttr -force ($normalPlace2dTexture + ".mirrorU") ($normalFileTexture + ".mirrorU");
+                connectAttr -force ($normalPlace2dTexture + ".mirrorV") ($normalFileTexture + ".mirrorV");
+                connectAttr -force ($normalPlace2dTexture + ".stagger") ($normalFileTexture + ".stagger");
+                connectAttr -force ($normalPlace2dTexture + ".wrapU") ($normalFileTexture + ".wrapU");
+                connectAttr -force ($normalPlace2dTexture + ".wrapV") ($normalFileTexture + ".wrapV");
+                connectAttr -force ($normalPlace2dTexture + ".repeatUV") ($normalFileTexture + ".repeatUV");
+                connectAttr -force ($normalPlace2dTexture + ".offset") ($normalFileTexture + ".offset");
+                connectAttr -force ($normalPlace2dTexture + ".outUV") ($normalFileTexture + ".uvCoord");
+                // -----------------------------------------------------------------------------------------
+                connectAttr -force ($normalFileTexture + ".outColor") ($normalmap + ".input");
+                if($mode==1)connectAttr -force ($normalmap + ".outValue") ($AutoTexture_MSurface + ".normalCamera");
+                if($mode==2){
+                    setAttr ($AutoTexture_MSurface + ".bumpMapType") 1;
+                    connectAttr -force ($normalmap + ".outValue") ($AutoTexture_MSurface + ".bumpMap");
+                }
+                setAttr -type "string" ($normalFileTexture + ".fileTextureName") $buf;
+                setAttr ($normalFileTexture + ".colorSpace") -type "string" "Raw";
+                if (`checkBox -q -v $AutoTexture_udimcbox`)
+                {
+                    setAttr ($normalFileTexture + ".uvTilingMode") 3;
+                    generateUvTilePreview $normalFileTexture;
+                }else{
+                    setAttr ($normalFileTexture + ".uvTilingMode") 0;
+                }
+            }
+            // heightにファイルとplace2dTextureを接続
+            if( `gmatch $buf ("*" + $AutoTexture_Dispname + "*")`){
+                string $AutoTexture_MSurfaceSG = $AutoTexture_MSurface + "SG";
+                string $dispFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_dispFile")`;
+                string $dispPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_dispPlace2d")`;
+                string $displuminance = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_displuminance")`;
+                string $displuminance2 = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_displuminance")`;
+                // string $dispShader = `shadingNode -asShader displacementShader -name ($AutoTexture_Surface + "_displacementShader")`;
+                string $dispblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_dispblendColors")`;
+                // ファイル接続テンプレ
+                connectAttr -force ($dispPlace2dTexture + ".coverage") ($dispFileTexture + ".coverage");
+                connectAttr -force ($dispPlace2dTexture + ".translateFrame") ($dispFileTexture + ".translateFrame");
+                connectAttr -force ($dispPlace2dTexture + ".rotateFrame") ($dispFileTexture + ".rotateFrame");
+                connectAttr -force ($dispPlace2dTexture + ".mirrorU") ($dispFileTexture + ".mirrorU");
+                connectAttr -force ($dispPlace2dTexture + ".mirrorV") ($dispFileTexture + ".mirrorV");
+                connectAttr -force ($dispPlace2dTexture + ".stagger") ($dispFileTexture + ".stagger");
+                connectAttr -force ($dispPlace2dTexture + ".wrapU") ($dispFileTexture + ".wrapU");
+                connectAttr -force ($dispPlace2dTexture + ".wrapV") ($dispFileTexture + ".wrapV");
+                connectAttr -force ($dispPlace2dTexture + ".repeatUV") ($dispFileTexture + ".repeatUV");
+                connectAttr -force ($dispPlace2dTexture + ".offset") ($dispFileTexture + ".offset");
+                connectAttr -force ($dispPlace2dTexture + ".outUV") ($dispFileTexture + ".uvCoord");
+                // -----------------------------------------------------------------------------------------
+                setAttr -type "string" ($dispFileTexture + ".fileTextureName") $buf;
+                if($mode==1){
+                    string $dispColorCorrect = `shadingNode -asUtility aiColorCorrect -name ($AutoTexture_Surface + "_dispColorCorrect")`;
+                    connectAttr -force ($dispblendColors + ".output") ($dispColorCorrect + ".input");
+                    connectAttr -force ($dispColorCorrect + ".outColor") ($displuminance2 + ".value");
+                    connectAttr -force ($displuminance2 + ".outValue") ($AutoTexture_MSurfaceSG + ".displacementShader");
+                }
+                if($mode==2){
+                    string $selnum;
+                    select $selectedObjects;
+                    string $VD[] = `vray objectProperties add_single VRayDisplacement`;
+                    string $VRayDisp = `rename $VD[0] ($AutoTexture_Surface + "_vrayDisplacement")`;
+                    // string $VRayDisp = `createNode "VRayDisplacement" -n ($AutoTexture_Surface + "_vrayDisplacement")`;
+                    string $dispColorCorrect = `shadingNode -asTexture VRayColorCorrection -name ($AutoTexture_Surface + "_dispColorCorrect")`;
+                    connectAttr -force ($dispblendColors + ".output") ($dispColorCorrect + ".texture_map");
+                    connectAttr -force ($dispColorCorrect + ".outColor") ($displuminance2 + ".value");
+                    connectAttr -force ($displuminance2 + ".outValue") ($VRayDisp + ".displacement");
+                    string $text = $selectedObjects[0];
+                    int $i = size($text);
+                    for ($i; $i > 0; $i--) {
+                        string $char = substring($text, $i, $i);
+                        $selnum = ($char + $selnum);
+                        if (`match "[0-9]" $char` == "") {
+                            $selnum = `substring $selnum 2 (size($selnum))`;
+                            // print $selnum;
+                            break;
+                        }
+                    }
+                    string $selstr = substituteAllString ($selectedObjects[0],$selnum,"");
+                    vray addAttributesFromGroup ("|" + $selectedObjects[0] + "|" + $selstr + "Shape" + $selnum) vray_displacement 1;
+                    vray addAttributesFromGroup ("|" + $selectedObjects[0] + "|" + $selstr + "Shape" + $selnum) vray_subquality 1;
+                }
+                connectAttr -force ($dispFileTexture + ".outColor") ($displuminance + ".value");
+                connectAttr -force ($displuminance + ".outValue") ($dispblendColors + ".blender");
+                setAttr ($dispblendColors + ".color1") -type double3 1 1 1 ;
+                setAttr ($dispblendColors + ".color2") -type double3 0 0 0 ;
+                setAttr ($dispFileTexture + ".colorSpace") -type "string" "Raw";
+                if(`checkBox -q -v $AutoTexture_udimcbox`){
+                    setAttr ($dispFileTexture + ".uvTilingMode") 3;
+                    generateUvTilePreview $dispFileTexture;
+                }else{
+                    setAttr ($dispFileTexture + ".uvTilingMode") 0;
+                }
+            }
+        }
+        print("completion\n");
+        
+        // resetTexturePath
+        string $file[] =`ls -type "file"`;
+        string $name[];
+        for($i=0;$i<size($file);$i++){
+            string $texturePath = `getAttr($file[$i]+".fileTextureName")`;
+            string $textureName[] = stringToStringArray($texturePath,"/");
+            $name[$i] = $textureName[size($textureName)-1];
+        }
+
+        string $scene = `file -q -sn`;
+        // string $texpath[] =`fileDialog2 -fm 3`;
+
+        string $scenePath[] = stringToStringArray($scene,"/");
+        string $imagePath[] = stringToStringArray($texpath[0],"/");
+        int $snLen = size($scenePath);
+        int $imLen = size($imagePath);
+        int $cdUp = $imLen - $snLen;
+        int $common = 0;
+        stringArrayRemoveAtIndex($snLen-1,$scenePath);
+        string $wd =stringArrayToString($scenePath,"/");
+        for($i=0;$i<size($scenePath);$i++){
+            if($scenePath[$i] == $imagePath[$i]){$common++;}
+        }
+        for($i=0;$i<$common;$i++){
+            stringArrayRemoveAtIndex(0,$imagePath);
+        }
+        string $dir = stringArrayToString($imagePath,"/");
+        string $prFix;
+        for($i=0;$i<$cdUp;$i++){
+            $prFix=$prFix+"../";
+        }
+        if(sizeBytes($prFix) == 0){$prFix = "./";}
+        
+
+        for($i=0;$i<size($file);$i++){
+            string $imName = stringArrayToString($imagePath,"/");
+            setAttr -type "string" ($file[$i]+".fileTextureName") ($prFix+$dir+"/"+$name[$i]);
+        }
+
+        workspace -bw $wd;
+        // -------------------------------------------------------------------------------------------
+    } else {
+        print("Error: Object not selected.\n");
+    }
+    select $selectedObjects;
+}
+
+
+// global proc AutoTexture_Vray(){
+//     print "V-ray";
+// }
+
+
+global proc AutoTexture_setWindowSize(){
+    // global string $AutoTexture_tabui;
+    // window -e -h 150 -w 350 AutoTexture_UI;
+    // tabLayout -e -h 100 tab;
+}
+
+
+global proc AutoTexture_Viewimages(){
+    global string $AutoTexture_BCnode[];
+    global string $AutoTexture_Metalnode[];
+
+    if ( (`window -ex AutoTexture_Viewimages_UI`) == true ) deleteUI AutoTexture_Viewimages_UI;//UIが表示されていれば消す
+        window -title "images" -tlb true AutoTexture_Viewimages_UI;
+
+        columnLayout;
+            // swatchDisplayPort -wh 512 512 -rs 512 -sn "cube_roughnessblendColors1";
+            text -l "error";
+        setParent..;
+        showWindow AutoTexture_Viewimages_UI;
+}
+
+
+global proc AutoTexture_Changeimages(string $M_materialname, string $filenode, int $i){
+    global string $AutoTexture_NameBaseColor[];
+    global string $AutoTexture_NameMetalness[];
+    global string $AutoTexture_NameRoughness[];
+    global string $AutoTexture_NameNormal[];
+    global string $AutoTexture_NameDisplacement[];
+
+    $materialname = stringRemovePrefix($M_materialname, "M_");
+    $filepath = `workspace -q -rootDirectory`;
+    string $texfile_Before = `getAttr ($materialname + $filenode + "*" + ".fileTextureName")`;
+    string $texfile[] = `fileDialog2 -fm 1 -dir ($filepath + "sourceimages/")`;
+    if (size($texfile) > 0){
+        setAttr -type "string" ($materialname + $filenode + "*" + ".fileTextureName") $texfile;
+        if (`gmatch $filenode "*baseColor*"`){
+            textFieldGrp -e -tx $texfile $AutoTexture_NameBaseColor[$i];
+        }
+        if (`gmatch $filenode "*metalness*"`){
+            textFieldGrp -e -tx $texfile $AutoTexture_NameMetalness[$i];
+        }
+        if (`gmatch $filenode "*roughness*"`){
+            textFieldGrp -e -tx $texfile $AutoTexture_NameRoughness[$i];
+        }
+        if (`gmatch $filenode "*normal*"`){
+            textFieldGrp -e -tx $texfile $AutoTexture_NameNormal[$i];
+        }
+        if (`gmatch $filenode "*disp*"`){
+            textFieldGrp -e -tx $texfile $AutoTexture_NameDisplacement[$i];
+        }
+    }
+    else{
+        setAttr -type "string" ($materialname + $filenode + "*" + ".fileTextureName") $texfile_Before;
+        if (`gmatch $filenode "*baseColor*"`){
+            textFieldGrp -e -tx $texfile_Before $AutoTexture_NameBaseColor[$i];
+        }
+        if (`gmatch $filenode "*metalness*"`){
+            textFieldGrp -e -tx $texfile_Before $AutoTexture_NameMetalness[$i];
+        }
+        if (`gmatch $filenode "*roughness*"`){
+            textFieldGrp -e -tx $texfile_Before $AutoTexture_NameRoughness[$i];
+        }
+        if (`gmatch $filenode "*normal*"`){
+            textFieldGrp -e -tx $texfile_Before $AutoTexture_NameNormal[$i];
+        }
+        if (`gmatch $filenode "*disp*"`){
+            textFieldGrp -e -tx $texfile_Before $AutoTexture_NameDisplacement[$i];
+        }
+    }
+}
+
+
+global proc AutoTexture_Material_Get(){
+    global string $AutoTexture_BCnode[];
+    global string $AutoTexture_Metalnode[];
+    global string $AutoTexture_Roughnode[];
+    global string $AutoTexture_Nornode[];
+    global string $AutoTexture_Dispnodeblend[];
+    global string $AutoTexture_Dispnodecolor[];
+    global string $AutoTexture_BCcon;
+    global string $AutoTexture_Metalcon;
+    global string $AutoTexture_Roughcon;
+    global string $AutoTexture_Norcon;
+    global string $AutoTexture_Dispcon;
+    global string $AutoTexture_frameui;
+    global string $AutoTexture_tabui;
+    global int $AutoTexture_MaterialCount;
+
+    global string $AutoTexture_BCfile[];
+    global string $AutoTexture_ViewBaseColor[];
+    global string $AutoTexture_NameBaseColor[];
+    global string $AutoTexture_ChangeBaseColor[];
+    global string $AutoTexture_Metalfile[];
+    global string $AutoTexture_ViewMetalness[];
+    global string $AutoTexture_NameMetalness[];
+    global string $AutoTexture_ChangeMetalness[];
+    global string $AutoTexture_Roughfile[];
+    global string $AutoTexture_ViewRoughness[];
+    global string $AutoTexture_NameRoughness[];
+    global string $AutoTexture_ChangeRoughness[];
+    global string $AutoTexture_Norfile[];
+    global string $AutoTexture_ViewNormal[];
+    global string $AutoTexture_NameNormal[];
+    global string $AutoTexture_ChangeNormal[];
+    global string $AutoTexture_Dispfile[];
+    global string $AutoTexture_ViewDisplacement[];
+    global string $AutoTexture_NameDisplacement[];
+    global string $AutoTexture_ChangeDisplacement[];
+
+    global string $AutoTexture_frameBaseColor[];
+    global string $AutoTexture_BGfs[];
+    global string $AutoTexture_BHfs[];
+    global string $AutoTexture_BSfs[];
+    global string $AutoTexture_BCfs[];
+    global string $AutoTexture_BCPfs[];
+    global string $AutoTexture_BEfs[];
+    global string $AutoTexture_frameMetalness[];
+    global string $AutoTexture_MC1fs[];
+    global string $AutoTexture_MC2fs[];
+    global string $AutoTexture_frameRoughness[];
+    global string $AutoTexture_RC1fs[];
+    global string $AutoTexture_RC2fs[];
+    global string $AutoTexture_frameNormal[];
+    global string $AutoTexture_NSfs[];
+    global string $AutoTexture_NIcb[];
+    global string $AutoTexture_frameDisplacement[];
+    global string $AutoTexture_DC1fs[];
+    global string $AutoTexture_DC2fs[];
+    global string $AutoTexture_DCfs[];
+
+    string $materialname[];
+    string $material[];
+    string $materialSG[];
+    string $mate[];
+    string $scrlay[];
+    // string $frameui[];
+
+    $AutoTexture_BCcon = false;
+    $AutoTexture_Metalcon = false;
+    $AutoTexture_Roughcon = false;
+    $AutoTexture_Norcon = false;
+    $AutoTexture_Dispcon = false;
+    string $selectedObjects[] = `ls -selection`;
+    int $i = 0;
+    $AutoTexture_MaterialCount = 0;
+
+    hyperShade -smn;
+    string $materialall[] = `ls -sl`;
+    for($mater in $materialall){
+        if(`gmatch $mater "*M_*"`){
+            $materialname[$AutoTexture_MaterialCount] = $mater;
+            for($s1 in $materialname){
+                $material[$AutoTexture_MaterialCount] = stringRemovePrefix($s1, "M_");
+            }
+            for($s2 in $materialname){
+                $materialSG[$AutoTexture_MaterialCount] = $s2 + "SG";
+            }
+            // string $matemp[] = `hyperShade -lun $materialSG[$n]`;
+            // int $c = `size $matemp`;
+            // appendStringArray($mate, $matemp, $c);
+            $AutoTexture_MaterialCount++;
+        }
+    }
+    // print $mate;
+
+    // UI作成
+    string $temp = "";
+    deleteUI $AutoTexture_tabui;
+    $AutoTexture_tabui = `tabLayout -p $AutoTexture_frameui tab`;
+        for($temp in $materialname){
+            // string $colum = `columnLayout -adj true -p $AutoTexture_tabui $temp`;
+            // $scrlay[$i] = `scrollLayout -cr true -p $AutoTexture_tabui $temp`;
+                columnLayout -adj true -p $AutoTexture_tabui $temp;
+                    // ベースカラー
+                    $AutoTexture_frameBaseColor[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "BaseColor" -en true -vis true`;
+                        rowLayout -nc 2 -adj 1;
+                            // $AutoTexture_ViewBaseColor[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
+                            $AutoTexture_NameBaseColor[$i] = `textFieldGrp -adj 2 -l "images" -cw 1 90`;
+                            $AutoTexture_ChangeBaseColor[$i] = `iconTextButton -i "browseFolder.png" -c ("AutoTexture_Changeimages(\""+$temp+"\", \"_baseColorFile\", \""+$i+"\")")`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Gamma";
+                            $AutoTexture_BGfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 - fmx 100 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Hue Shift";
+                            $AutoTexture_BHfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min -1 -max 1 -s 0.001 -v 0`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Staturation";
+                            $AutoTexture_BSfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Contrast";
+                            $AutoTexture_BCfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Contrast Pivot";
+                            $AutoTexture_BCPfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0.18`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Exposure";
+                            $AutoTexture_BEfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 0`;
+                        setParent..;
+                    setParent..;
+                    
+                    // メタルネス
+                    $AutoTexture_frameMetalness[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Metalness" -en true -vis true`;
+                        rowLayout -nc 2 -adj 1;
+                            // $AutoTexture_ViewMetalness[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
+                            $AutoTexture_NameMetalness[$i] = `textFieldGrp -adj 2 -l "images" -cw 1 90`;
+                            $AutoTexture_ChangeMetalness[$i] = `iconTextButton -i "browseFolder.png" -c ("AutoTexture_Changeimages(\""+$temp+"\", \"_metalnessFile\", \""+$i+"\")")`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 1";
+                            $AutoTexture_MC1fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 2";
+                            $AutoTexture_MC2fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0`;
+                        setParent..;
+                    setParent..;
+
+                    // ラフネス
+                    $AutoTexture_frameRoughness[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Roughness" -en true -vis true`;
+                        rowLayout -nc 2 -adj 1;
+                            // $AutoTexture_ViewRoughness[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
+                            $AutoTexture_NameRoughness[$i] = `textFieldGrp -adj 2 -l "images" -cw 1 90`;
+                            $AutoTexture_ChangeRoughness[$i] = `iconTextButton -i "browseFolder.png" -c ("AutoTexture_Changeimages(\""+$temp+"\", \"_roughnessFile\", \""+$i+"\")")`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 1";
+                            $AutoTexture_RC1fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 2";
+                            $AutoTexture_RC2fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0`;
+                        setParent..;
+                    setParent..;
+
+                    // ノーマル
+                    $AutoTexture_frameNormal[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Normal" -en true -vis true`;
+                        rowLayout -nc 2 -adj 1;
+                            // $AutoTexture_ViewNormal[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
+                            $AutoTexture_NameNormal[$i] = `textFieldGrp -adj 2 -l "images" -cw 1 90`;
+                            $AutoTexture_ChangeNormal[$i] = `iconTextButton -i "browseFolder.png" -c ("AutoTexture_Changeimages(\""+$temp+"\", \"_normalFile\", \""+$i+"\")")`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Strength";
+                            $AutoTexture_NSfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 4 -s 0.001 -v 1`;
+                        setParent..;
+                        columnLayout -cat "left" 94;
+                            $AutoTexture_NIcb[$i] = `checkBox -w 90 -cc "AutoTexture_rotChange()" -l "Invert Y" -v false`;
+                        setParent..;
+                    setParent..;
+
+                    // ディスプレイスメント
+                    $AutoTexture_frameDisplacement[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Displacement" -en true -vis true`;
+                        rowLayout -nc 2 -adj 1;
+                            // $AutoTexture_ViewDisplacement[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
+                            $AutoTexture_NameDisplacement[$i] = `textFieldGrp -adj 2 -l "images" -cw 1 90`;
+                            $AutoTexture_ChangeDisplacement[$i] = `iconTextButton -i "browseFolder.png" -c ("AutoTexture_Changeimages(\""+$temp+"\", \"_dispFile\", \""+$i+"\")")`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 1";
+                            $AutoTexture_DC1fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Color 2";
+                            $AutoTexture_DC2fs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0`;
+                        setParent..;
+                        rowLayout -nc 2 -adj 2;
+                            text -al "right" -w 90 -l "Contrast";
+                            $AutoTexture_DCfs[$i] = `floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1`;
+                        setParent..;
+                    setParent..;
+
+                    columnLayout -adj true;
+                        button -c "AutoTexture_reset()" -h 28 -l "reset" -bgc 0.5 0.7 0.5;
+                        button -c "AutoTexture_Material_Get()" -h 38 -l "Get" -bgc 0.4 0.7 0.4;
+                    setParent..;
+                setParent..;
+            setParent..;
+            // setParent..;
+            // formLayout -e
+                
+            //     -af $scrlay[$i] "right" 3
+            // $colum;
+            $i++;
+        }
+        if ($materialname[0] == ""){
+            columnLayout -adj true none;
+                button -c "AutoTexture_reset()" -h 28 -l "reset" -bgc 0.5 0.7 0.5;
+                button -c "AutoTexture_Material_Get()" -h 38 -l "Get" -bgc 0.4 0.7 0.4;
+            setParent..;
+        }
+    setParent..;
+
+    // 作成したUIに値を取得
+    for($val = 0; $val < $AutoTexture_MaterialCount; $val++){
+        string $mate[] = `hyperShade -lun $materialSG[$val]`;
+        for($mnode in $mate){
+            if(`gmatch $mnode "*baseColorCorrect*"`){
+                frameLayout -e -en true -vis true $AutoTexture_frameBaseColor[$val];
+                $AutoTexture_BCnode[$val] = ($material[$val] + "_baseColorCorrect");
+                $AutoTexture_BCfile[$val] = ($material[$val] + "_baseColorFile");
+                float $BCnode_gammavalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".gamma")`;
+                float $BCnode_hueShiftvalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".hueShift")`;
+                float $BCnode_saturationvalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".saturation")`;
+                float $BCnode_contrastvalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrast")`;
+                float $BCnode_contrastPivotvalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrastPivot")`;
+                float $BCnode_exposurevalue = `getAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".exposure")`;
+                string $BCnode_filename = `getAttr (("*" + $AutoTexture_BCfile[$val] + "*") + ".fileTextureName")`;
+                floatSliderGrp -e -v $BCnode_gammavalue $AutoTexture_BGfs[$val];
+                floatSliderGrp -e -v $BCnode_hueShiftvalue $AutoTexture_BHfs[$val];
+                floatSliderGrp -e -v $BCnode_saturationvalue $AutoTexture_BSfs[$val];
+                floatSliderGrp -e -v $BCnode_contrastvalue $AutoTexture_BCfs[$val];
+                floatSliderGrp -e -v $BCnode_contrastPivotvalue $AutoTexture_BCPfs[$val];
+                floatSliderGrp -e -v $BCnode_exposurevalue $AutoTexture_BEfs[$val];
+                textFieldGrp -e -tx $BCnode_filename $AutoTexture_NameBaseColor[$val];
+                $AutoTexture_BCcon = true;
+            }
+            if(`gmatch $mnode "*metalnessblendColors*"`){
+                frameLayout -e -en true -vis true $AutoTexture_frameMetalness[$val];
+                $AutoTexture_Metalnode[$val] = ($material[$val] + "_metalnessblendColors");
+                $AutoTexture_Metalfile[$val] = ($material[$val] + "_metalnessFile");
+                float $Metalnode_1Rvalue = `getAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1R")`;
+                float $Metalnode_2Rvalue = `getAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2R")`;
+                string $Metalnode_filename = `getAttr (("*" + $AutoTexture_Metalfile[$val] + "*") + ".fileTextureName")`;
+                floatSliderGrp -e -v $Metalnode_1Rvalue $AutoTexture_MC1fs[$val];
+                floatSliderGrp -e -v $Metalnode_2Rvalue $AutoTexture_MC2fs[$val];
+                textFieldGrp -e -tx $Metalnode_filename $AutoTexture_NameMetalness[$val];
+                $AutoTexture_Metalcon = true;
+            }
+            if(`gmatch $mnode "*roughnessblendColors*"`){
+                frameLayout -e -en true -vis true $AutoTexture_frameRoughness[$val];
+                $AutoTexture_Roughnode[$val] = ($material[$val] + "_roughnessblendColors");
+                $AutoTexture_Roughfile[$val] = ($material[$val] + "_roughnessFile");
+                float $Roughnode_1Rvalue = `getAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1R")`;
+                float $Roughnode_2Rvalue = `getAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2R")`;
+                string $Roughnode_filename = `getAttr (("*" + $AutoTexture_Roughfile[$val] + "*") + ".fileTextureName")`;
+                floatSliderGrp -e -v $Roughnode_1Rvalue $AutoTexture_RC1fs[$val];
+                floatSliderGrp -e -v $Roughnode_2Rvalue $AutoTexture_RC2fs[$val];
+                textFieldGrp -e -tx $Roughnode_filename $AutoTexture_NameRoughness[$val];
+                $AutoTexture_Roughcon = true;
+            }
+            if(`gmatch $mnode "*aiNormalMap*"`){
+                frameLayout -e -en true -vis true $AutoTexture_frameNormal[$val];
+                $AutoTexture_Nornode[$val] = ($material[$val] + "_aiNormalMap");
+                $AutoTexture_Norfile[$val] = ($material[$val] + "_normalFile");
+                float $Nornode_strengthvalue = `getAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".strength")`;
+                float $Nornode_invertYvalue = `getAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".invertY")`;
+                string $Nornode_filename = `getAttr (("*" + $AutoTexture_Norfile[$val] + "*") + ".fileTextureName")`;
+                floatSliderGrp -e -v $Nornode_strengthvalue $AutoTexture_NSfs[$val];
+                checkBox -e -v $Nornode_invertYvalue $AutoTexture_NIcb[$val];
+                textFieldGrp -e -tx $Nornode_filename $AutoTexture_NameNormal[$val];
+                $AutoTexture_Norcon = true;
+            }
+            if(`gmatch $mnode "*dispColorCorrect*"`){
+                frameLayout -e -en true -vis true $AutoTexture_frameDisplacement[$val];
+                $AutoTexture_Dispnodeblend[$val] = ($material[$val] + "_dispblendColors");
+                $AutoTexture_Dispnodecolor[$val] = ($material[$val] + "_dispColorCorrect");
+                $AutoTexture_Dispfile[$val] = ($material[$val] + "_dispFile");
+                float $Dispnodeblend_1Rvalue = `getAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1R")`;
+                float $Dispnodeblend_2Rvalue = `getAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2R")`;
+                float $Dispnode_colorcontrastvalue = `getAttr (("*" + $AutoTexture_Dispnodecolor[$val] + "*") + ".contrast")`;
+                string $Dispnode_filename = `getAttr (("*" + $AutoTexture_Dispfile[$val] + "*") + ".fileTextureName")`;
+                floatSliderGrp -e -v $Dispnodeblend_1Rvalue $AutoTexture_DC1fs[$val];
+                floatSliderGrp -e -v $Dispnodeblend_2Rvalue $AutoTexture_DC2fs[$val];
+                floatSliderGrp -e -v $Dispnode_colorcontrastvalue $AutoTexture_DCfs[$val];
+                textFieldGrp -e -tx $Dispnode_filename $AutoTexture_NameDisplacement[$val];
+                $AutoTexture_Dispcon = true;
+            }
+        }
+    }
+    select $selectedObjects;
+    window -e -h 950 AutoTexture_UI;
+}
+
+
+global proc AutoTexture_reset(){
+    global string $AutoTexture_BCnode[];
+    global string $AutoTexture_Metalnode[];
+    global string $AutoTexture_Roughnode[];
+    global string $AutoTexture_Nornode[];
+    global string $AutoTexture_Dispnodeblend[];
+    global string $AutoTexture_Dispnodecolor[];
+    global string $AutoTexture_BCcon;
+    global string $AutoTexture_Metalcon;
+    global string $AutoTexture_Roughcon;
+    global string $AutoTexture_Norcon;
+    global string $AutoTexture_Dispcon;
+    global int $AutoTexture_MaterialCount;
+
+    global string $AutoTexture_frameBaseColor[];
+    global string $AutoTexture_BGfs[];
+    global string $AutoTexture_BHfs[];
+    global string $AutoTexture_BSfs[];
+    global string $AutoTexture_BCfs[];
+    global string $AutoTexture_BCPfs[];
+    global string $AutoTexture_BEfs[];
+    global string $AutoTexture_frameMetalness[];
+    global string $AutoTexture_MC1fs[];
+    global string $AutoTexture_MC2fs[];
+    global string $AutoTexture_frameRoughness[];
+    global string $AutoTexture_RC1fs[];
+    global string $AutoTexture_RC2fs[];
+    global string $AutoTexture_frameNormal[];
+    global string $AutoTexture_NSfs[];
+    global string $AutoTexture_NIcb[];
+    global string $AutoTexture_frameDisplacement[];
+    global string $AutoTexture_DC1fs[];
+    global string $AutoTexture_DC2fs[];
+    global string $AutoTexture_DCfs[];
+
+    for($val = 0; $val < $AutoTexture_MaterialCount; $val++){
+        if($AutoTexture_BCcon == true){
+            floatSliderGrp -e -v 1 $AutoTexture_BGfs[$val];
+            floatSliderGrp -e -v 0 $AutoTexture_BHfs[$val];
+            floatSliderGrp -e -v 1 $AutoTexture_BSfs[$val];
+            floatSliderGrp -e -v 1 $AutoTexture_BCfs[$val];
+            floatSliderGrp -e -v 0.18 $AutoTexture_BCPfs[$val];
+            floatSliderGrp -e -v 0 $AutoTexture_BEfs[$val];
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".gamma") `floatSliderGrp -q -v $AutoTexture_BGfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".hueShift") `floatSliderGrp -q -v $AutoTexture_BHfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".saturation") `floatSliderGrp -q -v $AutoTexture_BSfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrast") `floatSliderGrp -q -v $AutoTexture_BCfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrastPivot") `floatSliderGrp -q -v $AutoTexture_BCPfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".exposure") `floatSliderGrp -q -v $AutoTexture_BEfs[$val]`;
+        }
+        if($AutoTexture_Metalcon == true){
+            floatSliderGrp -e -v 1 $AutoTexture_MC1fs[$val];
+            floatSliderGrp -e -v 0 $AutoTexture_MC2fs[$val];
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+        }
+        if($AutoTexture_Roughcon == true){
+            floatSliderGrp -e -v 1 $AutoTexture_RC1fs[$val];
+            floatSliderGrp -e -v 0 $AutoTexture_RC2fs[$val];
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+        }
+        if($AutoTexture_Norcon == true){
+            floatSliderGrp -e -v 1 $AutoTexture_NSfs[$val];
+            checkBox -e -v false $AutoTexture_NIcb[$val];
+            setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".strength") `floatSliderGrp -q -v $AutoTexture_NSfs[$val]`;
+            setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".invertY") `checkBox -q -v $AutoTexture_NIcb[$val]`;
+        }
+        if($AutoTexture_Dispcon == true){
+            floatSliderGrp -e -v 1 $AutoTexture_DC1fs[$val];
+            floatSliderGrp -e -v 0 $AutoTexture_DC2fs[$val];
+            floatSliderGrp -e -v 1 $AutoTexture_DCfs[$val];
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodecolor[$val] + "*") + ".contrast") `floatSliderGrp -q -v $AutoTexture_DCfs[$val]`;
+        }
+    }
+}
+
+
+global proc AutoTexture_rotChange(){
+    global string $AutoTexture_BCnode[];
+    global string $AutoTexture_Metalnode[];
+    global string $AutoTexture_Roughnode[];
+    global string $AutoTexture_Nornode[];
+    global string $AutoTexture_Dispnodeblend[];
+    global string $AutoTexture_Dispnodecolor[];
+    global string $AutoTexture_BCcon;
+    global string $AutoTexture_Metalcon;
+    global string $AutoTexture_Roughcon;
+    global string $AutoTexture_Norcon;
+    global string $AutoTexture_Dispcon;
+    global int $AutoTexture_MaterialCount;
+
+    global string $AutoTexture_frameBaseColor[];
+    global string $AutoTexture_BGfs[];
+    global string $AutoTexture_BHfs[];
+    global string $AutoTexture_BSfs[];
+    global string $AutoTexture_BCfs[];
+    global string $AutoTexture_BCPfs[];
+    global string $AutoTexture_BEfs[];
+    global string $AutoTexture_frameMetalness[];
+    global string $AutoTexture_MC1fs[];
+    global string $AutoTexture_MC2fs[];
+    global string $AutoTexture_frameRoughness[];
+    global string $AutoTexture_RC1fs[];
+    global string $AutoTexture_RC2fs[];
+    global string $AutoTexture_frameNormal[];
+    global string $AutoTexture_NSfs[];
+    global string $AutoTexture_NIcb[];
+    global string $AutoTexture_frameDisplacement[];
+    global string $AutoTexture_DC1fs[];
+    global string $AutoTexture_DC2fs[];
+    global string $AutoTexture_DCfs[];
+
+    for($val = 0; $val < $AutoTexture_MaterialCount; $val++){
+        if($AutoTexture_BCcon == true){
+            // ベースカラー
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".gamma") `floatSliderGrp -q -v $AutoTexture_BGfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".hueShift") `floatSliderGrp -q -v $AutoTexture_BHfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".saturation") `floatSliderGrp -q -v $AutoTexture_BSfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrast") `floatSliderGrp -q -v $AutoTexture_BCfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".contrastPivot") `floatSliderGrp -q -v $AutoTexture_BCPfs[$val]`;
+            setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".exposure") `floatSliderGrp -q -v $AutoTexture_BEfs[$val]`;
+        }
+        if($AutoTexture_Metalcon == true){
+            // メタルネス
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
+        }
+        if($AutoTexture_Roughcon == true){
+            // ラフネス
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
+        }
+        if($AutoTexture_Norcon == true){
+            // ノーマル
+            setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".strength") `floatSliderGrp -q -v $AutoTexture_NSfs[$val]`;
+            setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".invertY") `checkBox -q -v $AutoTexture_NIcb[$val]`;
+        }
+        if($AutoTexture_Dispcon == true){
+            // ディスプレイスメント
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2R") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2G") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_DC2fs[$val]`;
+            setAttr (("*" + $AutoTexture_Dispnodecolor[$val] + "*") + ".contrast") `floatSliderGrp -q -v $AutoTexture_DCfs[$val]`;
+        }
+    }
+}
+
+
+// global proc AutoTexture_shader_assign(string $value){//シェーダーの選択
+//     global string $AutoTexture_Apply;
+//     $AutoTexture_Apply = $value;
+// }
+
+
+// global proc AutoTexture_Apply(){
+//     global string $AutoTexture_Apply;
+//     if(`gmatch $AutoTexture_Apply "*arnold*"`) AutoTexture_add(0);
+//     else if(`gmatch $AutoTexture_Apply "*Vray*"`)   AutoTexture_add(1);
+//     else AutoTexture_add(0);
+// }
+
+
+global proc AutoTexture_opreset(){
+    textFieldGrp -e -tx "BaseColor" txBCname;
+    textFieldGrp -e -tx "Metalness" txMetalname;
+    textFieldGrp -e -tx "Roughness" txRoughname;
+    textFieldGrp -e -tx "Normal" txNormalname;
+    textFieldGrp -e -tx "Height" txDispname;
+    textFieldGrp -e -tx "png" txextname;
+    AutoTexture_opsave();
+}
+
+global proc AutoTexture_opsave(){
+    global string $AutoTexture_BCname;
+    global string $AutoTexture_Metalname;
+    global string $AutoTexture_Roughname;
+    global string $AutoTexture_Normalname;
+    global string $AutoTexture_Dispname;
+    global string $AutoTexture_optionColor;
+    global string $AutoTexture_optionMetal;
+    global string $AutoTexture_optionRough;
+    global string $AutoTexture_optionNormal;
+    global string $AutoTexture_optionDisp;
+    global string $AutoTexture_opext;
+    global string $AutoTexture_ext;
+
+    $AutoTexture_BCname = `textFieldGrp -q -tx $AutoTexture_optionColor`;
+    $AutoTexture_Metalname = `textFieldGrp -q -tx $AutoTexture_optionMetal`;
+    $AutoTexture_Roughname = `textFieldGrp -q -tx $AutoTexture_optionRough`;
+    $AutoTexture_Normalname = `textFieldGrp -q -tx $AutoTexture_optionNormal`;
+    $AutoTexture_Dispname = `textFieldGrp -q -tx $AutoTexture_optionDisp`;
+    $AutoTexture_ext = `textFieldGrp -q -tx $AutoTexture_opext`;
+
+    optionVar -sv "colormemory" $AutoTexture_BCname;
+    optionVar -sv "metalmemory" $AutoTexture_Metalname;
+    optionVar -sv "roughmemory" $AutoTexture_Roughname;
+    optionVar -sv "normalmemory" $AutoTexture_Normalname;
+    optionVar -sv "dispmemory" $AutoTexture_Dispname;
+    optionVar -sv "extmemory" $AutoTexture_ext;
+}
+
+
+global proc AutoTexture_option(){
+    global string $AutoTexture_optionColor;
+    global string $AutoTexture_optionMetal;
+    global string $AutoTexture_optionRough;
+    global string $AutoTexture_optionNormal;
+    global string $AutoTexture_optionDisp;
+    global string $AutoTexture_opext;
+
+    string $colortext;
+    string $metaltext;
+    string $roughtext;
+    string $normaltext;
+    string $disptext;
+    string $exttext;
+
+    if(`optionVar -ex "colormemory"`) $colortext = `optionVar -q "colormemory"`;
+    else $colortext = "BaseColor";
+    if(`optionVar -ex "metalmemory"`) $metaltext = `optionVar -q "metalmemory"`;
+    else $metaltext = "Metalness";
+    if(`optionVar -ex "roughmemory"`) $roughtext = `optionVar -q "roughmemory"`;
+    else $roughtext = "Roughness";
+    if(`optionVar -ex "normalmemory"`) $normaltext = `optionVar -q "normalmemory"`;
+    else $normaltext = "Normal";
+    if(`optionVar -ex "dispmemory"`) $disptext = `optionVar -q "dispmemory"`;
+    else $disptext = "Height";
+    if(`optionVar -ex "extmemory"`) $exttext = `optionVar -q "extmemory"`;
+    else $exttext = "png";
+
+    if ( (`window -ex AutoTexture_option_UI`) == true ) deleteUI AutoTexture_option_UI;//UIが表示されていれば消す
+        window -title "option" -h 10 -w 15 -tlb true AutoTexture_option_UI;
+        
+        columnLayout -adj true;
+            $AutoTexture_optionColor = `textFieldGrp -adj 2 -cw 1 100 -l "BaseColor" -tx $colortext txBCname`;
+            $AutoTexture_optionMetal = `textFieldGrp -adj 2 -cw 1 100 -l "Metalness" -tx $metaltext txMetalname`;
+            $AutoTexture_optionRough = `textFieldGrp -adj 2 -cw 1 100 -l "Roughness" -tx $roughtext txRoughname`;
+            $AutoTexture_optionNormal = `textFieldGrp -adj 2 -cw 1 100 -l "Normal" -tx $normaltext txNormalname`;
+            $AutoTexture_optionDisp = `textFieldGrp -adj 2 -cw 1 100 -l "Displacement" -tx $disptext txDispname`;
+            separator -st "in";//-----------------------------------------------------
+            $AutoTexture_opext = `textFieldGrp -adj 2 -cw 1 100 -l "extension" -tx $exttext txextname`;
+
+            button -c "AutoTexture_opreset()" -h 20 -l "reset";
+            button -c "AutoTexture_opsave()" -h 38 -l "Save";
+        setParent..;
+
+        showWindow AutoTexture_option_UI;
+}
+
+
+global proc memoryOfValues(string $targetCtrl){
+    int $memoryVal = `radioButtonGrp -q -sl $targetCtrl`;
+    optionVar -iv "RBtnmemory" $memoryVal;
+}
+
+
+global proc AutoTexture(){
+    global string $AutoTexture_Apply;
+    global string $AutoTexture_udimcbox;
+    global string $AutoTexture_BCname;
+    global string $AutoTexture_Metalname;
+    global string $AutoTexture_Roughname;
+    global string $AutoTexture_Normalname;
+    global string $AutoTexture_Dispname;
+    global string $AutoTexture_ext;
+    // global string $colLay[];
+    global string $AutoTexture_frameui;
+    global string $AutoTexture_tabui;
+    string $modeSelRBtn;
+    int $modeSelRBtnDefaultVal;
+
+    $AutoTexture_Apply = "AutoTexture_add()";
+    $AutoTexture_BCname = "BaseColor";
+    $AutoTexture_Metalname = "Metalness";
+    $AutoTexture_Roughname = "Roughness";
+    $AutoTexture_Normalname = "Normal";
+    $AutoTexture_Dispname = "Height";
+    $AutoTexture_ext = "png";
+
+    if(`optionVar -ex "RBtnmemory"`) $modeSelRBtnDefaultVal = `optionVar -q "RBtnmemory"`;
+    else $modeSelRBtnDefaultVal = 1;
+
+    if ( (`window -ex AutoTexture_UI`) == true ) deleteUI AutoTexture_UI;//UIが表示されていれば消す
+    window -title "AutoTexture" -h 10 -w 10 -tlb true AutoTexture_UI;
+    // scrollLayout -cr true -w 400 -h 245;
+    columnLayout -adj true;//縦に並べる
+        // frameLayout -collapsable true -cc "AutoTexture_setWindowSize()" -l "assign";//折りたたみ -cll
+            rowLayout -nc 3 -ct3 "left" "left" "right";
+                $modeSelRBtn = `radioButtonGrp 
+                    -nrb 2
+                    -cw2 60 60
+                    -la2 "Arnold" "V-ray"
+                    -sl $modeSelRBtnDefaultVal`;
+                // radioCollection;
+                // $shader_Arnold = `radioButton -l "Arnold" -onc "AutoTexture_shader_assign(\"arnold\")" -sl`;
+                // $shader_Vray = `radioButton -l "V-ray" -onc "AutoTexture_shader_assign(\"Vray\")"`;
+                $AutoTexture_udimcbox = `checkBox -l "UDIM" udimcBox`;
+                nodeIconButton -image1 "shelfOptions.png" -c "AutoTexture_option()" -al "right";
+            setParent..;
+            rowLayout -nc 2 -adj 2 -ct2 "right" "left";
+                text -al "right" -l "Material name" -w 100;
+                textField tFname;
+            setParent..;
+            columnLayout -adj true -rs 5;
+                button -c "AutoTexture_add()" -h 38 -l "Apply" -bgc 0.5 0.5 1;
+            setParent..;
+        // setParent..;
+    setParent..;
+
+    // マテリアルパラメータ
+    // $AutoTexture_frameui = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Material" none`;
+    // $AutoTexture_tabui = `tabLayout`;
+        // textField -ed false -tx "none" mname;
+        // // ベースカラー
+        // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "BaseColor" -en false -vis false frameBaseColor;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Gamma";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1 BGfs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Hue Shift";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min -1 -max 1 -s 0.001 -v 0 BHfs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Staturation";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1 BSfs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Contrast";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1 BCfs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Contrast Pivot";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0.18 BCPfs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Exposure";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 0 BEfs;
+        //     setParent..;
+        // setParent..;
+
+        // // メタルネス
+        // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Metalness" -en false -vis false frameMetalness;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 1";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1 MC1fs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 2";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0 MC2fs;
+        //     setParent..;
+        // setParent..;
+
+        // // ラフネス
+        // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Roughness" -en false -vis false frameRoughness;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 1";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1 RC1fs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 2";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0 RC2fs;
+        //     setParent..;
+        // setParent..;
+
+        // // ノーマル
+        // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Normal" -en false -vis false frameNormal;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Strength";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 4 -s 0.001 -v 1 NSfs;
+        //     setParent..;
+        //     columnLayout -cat "left" 94;
+        //         checkBox -w 90 -cc "AutoTexture_rotChange()" -l "Invert Y" -v false NIcb;
+        //     setParent..;
+        // setParent..;
+
+        // // ディスプレイスメント
+        // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Displacement" -en false -vis false frameDisplacement;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 1";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 1 DC1fs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Color 2";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 1 -s 0.001 -v 0 DC2fs;
+        //     setParent..;
+        //     rowLayout -nc 2 -adj 2;
+        //         text -al "right" -w 90 -l "Contrast";
+        //         floatSliderGrp -cw 1 60 -field true -cc "AutoTexture_rotChange()" -min 0 -max 10 -s 0.001 -v 1 DCfs;
+        //     setParent..;
+        // setParent..;
+
+        // columnLayout -adj true none;
+        //     button -c "AutoTexture_reset()" -h 28 -l "reset" -bgc 0.5 0.7 0.5;
+        //     button -c "AutoTexture_Material_Get()" -h 38 -l "Get" -bgc 0.4 0.7 0.4;
+        // setParent..;
+    // setParent..;
+    // setParent..;
+
+    showWindow AutoTexture_UI;
+
+    window -e -h 10 -w 300 AutoTexture_UI;
+    $radioBtnCmd = ("memoryOfValues(\""+$modeSelRBtn+"\")");
+    radioButtonGrp -e -cc $radioBtnCmd $modeSelRBtn;
+    // AutoTexture_setWindowSize();
+}
