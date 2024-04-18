@@ -15,19 +15,19 @@ global proc AutoTexture_add(){
     print $mode;
 
     MLdeleteUnused;
-    // é¸æŠã•ã‚ŒãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’å–å¾—
+    // ‘I‘ğ‚³‚ê‚½ƒIƒuƒWƒFƒNƒg‚ğæ“¾
     string $selectedObjects[] = `ls -selection`;
     $AutoTexture_Surface = `textField -q -tx tFname`;
     $AutoTexture_MSurface = "M_" + $AutoTexture_Surface;
-    // é¸æŠã•ã‚ŒãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒå­˜åœ¨ã™ã‚‹ã‹ç¢ºèª
+    // ‘I‘ğ‚³‚ê‚½ƒIƒuƒWƒFƒNƒg‚ª‘¶İ‚·‚é‚©Šm”F
     if (size($selectedObjects) > 0) {
-        // ãƒãƒ†ãƒªã‚¢ãƒ«ã‚’å‰²ã‚Šå½“ã¦ã‚‹
+        // ƒ}ƒeƒŠƒAƒ‹‚ğŠ„‚è“–‚Ä‚é
         if($mode == 1) shadingNode -asShader "aiStandardSurface" -name $AutoTexture_MSurface;
         if($mode == 2) shadingNode -asShader "VRayMtl"           -name $AutoTexture_MSurface;
 
-        // é¸æŠã•ã‚ŒãŸå„ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’å‰²ã‚Šå½“ã¦ã‚‹
+        // ‘I‘ğ‚³‚ê‚½ŠeƒIƒuƒWƒFƒNƒg‚ÉƒVƒF[ƒ_[‚ğŠ„‚è“–‚Ä‚é
         for ($object in $selectedObjects) {
-        // ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’å‰²ã‚Šå½“ã¦ã‚‹
+        // ƒIƒuƒWƒFƒNƒg‚ÉƒVƒF[ƒ_[‚ğŠ„‚è“–‚Ä‚é
         select $object;
         hyperShade -assign $AutoTexture_MSurface;
         }
@@ -88,11 +88,11 @@ global proc AutoTexture_add(){
         }
     
         for ($buf in $texture) {
-            // Base Colorã«ãƒ•ã‚¡ã‚¤ãƒ«ã¨place2dTextureã‚’æ¥ç¶š
+            // Base Color‚Éƒtƒ@ƒCƒ‹‚Æplace2dTexture‚ğÚ‘±
             if(`gmatch $buf ("*" + $AutoTexture_BCname + "*")`){
                 string $baseColorFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_baseColorFile")`;
                 string $baseColorPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_baseColorPlace2d")`;
-                // ãƒ•ã‚¡ã‚¤ãƒ«æ¥ç¶šãƒ†ãƒ³ãƒ—ãƒ¬
+                // ƒtƒ@ƒCƒ‹Ú‘±ƒeƒ“ƒvƒŒ
                 connectAttr -force ($baseColorPlace2dTexture + ".coverage") ($baseColorFileTexture + ".coverage");
                 connectAttr -force ($baseColorPlace2dTexture + ".translateFrame") ($baseColorFileTexture + ".translateFrame");
                 connectAttr -force ($baseColorPlace2dTexture + ".rotateFrame") ($baseColorFileTexture + ".rotateFrame");
@@ -124,13 +124,13 @@ global proc AutoTexture_add(){
                     setAttr ($baseColorFileTexture + ".uvTilingMode") 0;
                 }
             }
-            // Metalnessã«ãƒ•ã‚¡ã‚¤ãƒ«ã¨place2dTextureã‚’æ¥ç¶š
+            // Metalness‚Éƒtƒ@ƒCƒ‹‚Æplace2dTexture‚ğÚ‘±
             if( `gmatch $buf ("*" + $AutoTexture_Metalname + "*")`){
                 string $metalnessFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_metalnessFile")`;
                 string $metalnessPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface +"_metalnessPlace2d")`;
                 string $metalnessluminance = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_metalnessluminance")`;
                 string $metalnessblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_metalnessblendColors")`;
-                // ãƒ•ã‚¡ã‚¤ãƒ«æ¥ç¶šãƒ†ãƒ³ãƒ—ãƒ¬
+                // ƒtƒ@ƒCƒ‹Ú‘±ƒeƒ“ƒvƒŒ
                 connectAttr -force ($metalnessPlace2dTexture + ".coverage") ($metalnessFileTexture + ".coverage");
                 connectAttr -force ($metalnessPlace2dTexture + ".translateFrame") ($metalnessFileTexture + ".translateFrame");
                 connectAttr -force ($metalnessPlace2dTexture + ".rotateFrame") ($metalnessFileTexture + ".rotateFrame");
@@ -158,13 +158,13 @@ global proc AutoTexture_add(){
                     setAttr ($metalnessFileTexture + ".uvTilingMode") 0;
                 }
             }
-            // roughnessã«ãƒ•ã‚¡ã‚¤ãƒ«ã¨place2dTextureã‚’æ¥ç¶š
+            // roughness‚Éƒtƒ@ƒCƒ‹‚Æplace2dTexture‚ğÚ‘±
             if( `gmatch $buf ("*" + $AutoTexture_Roughname + "*")`){
                 string $roughnessFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_roughnessFile")`;
                 string $roughnessPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_roughnessPlace2d")`;
                 string $roughnessluminance = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_roughnessluminance")`;
                 string $roughnessblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_roughnessblendColors")`;
-                // ãƒ•ã‚¡ã‚¤ãƒ«æ¥ç¶šãƒ†ãƒ³ãƒ—ãƒ¬
+                // ƒtƒ@ƒCƒ‹Ú‘±ƒeƒ“ƒvƒŒ
                 connectAttr -force ($roughnessPlace2dTexture + ".coverage") ($roughnessFileTexture + ".coverage");
                 connectAttr -force ($roughnessPlace2dTexture + ".translateFrame") ($roughnessFileTexture + ".translateFrame");
                 connectAttr -force ($roughnessPlace2dTexture + ".rotateFrame") ($roughnessFileTexture + ".rotateFrame");
@@ -196,12 +196,12 @@ global proc AutoTexture_add(){
                     setAttr ($roughnessFileTexture + ".uvTilingMode") 0;
                 }
             }
-            // Normalã«ãƒ•ã‚¡ã‚¤ãƒ«ã¨place2dTextureã‚’æ¥ç¶š
+            // Normal‚Éƒtƒ@ƒCƒ‹‚Æplace2dTexture‚ğÚ‘±
             if( `gmatch $buf ("*" + $AutoTexture_Normalname + "*")`){
                 string $normalFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_normalFile")`;
                 string $normalPlace2dTexture = `shadingNode -asUtility place2dTexture -name ($AutoTexture_Surface + "_normalPlace2d")`;
                 string $normalmap = `shadingNode -asUtility aiNormalMap -name ($AutoTexture_Surface + "_aiNormalMap")`;
-                // ãƒ•ã‚¡ã‚¤ãƒ«æ¥ç¶šãƒ†ãƒ³ãƒ—ãƒ¬
+                // ƒtƒ@ƒCƒ‹Ú‘±ƒeƒ“ƒvƒŒ
                 connectAttr -force ($normalPlace2dTexture + ".coverage") ($normalFileTexture + ".coverage");
                 connectAttr -force ($normalPlace2dTexture + ".translateFrame") ($normalFileTexture + ".translateFrame");
                 connectAttr -force ($normalPlace2dTexture + ".rotateFrame") ($normalFileTexture + ".rotateFrame");
@@ -230,7 +230,7 @@ global proc AutoTexture_add(){
                     setAttr ($normalFileTexture + ".uvTilingMode") 0;
                 }
             }
-            // heightã«ãƒ•ã‚¡ã‚¤ãƒ«ã¨place2dTextureã‚’æ¥ç¶š
+            // height‚Éƒtƒ@ƒCƒ‹‚Æplace2dTexture‚ğÚ‘±
             if( `gmatch $buf ("*" + $AutoTexture_Dispname + "*")`){
                 string $AutoTexture_MSurfaceSG = $AutoTexture_MSurface + "SG";
                 string $dispFileTexture = `shadingNode -asTexture file -name ($AutoTexture_Surface + "_dispFile")`;
@@ -239,7 +239,7 @@ global proc AutoTexture_add(){
                 string $displuminance2 = `shadingNode -asUtility luminance -name ($AutoTexture_Surface + "_displuminance")`;
                 // string $dispShader = `shadingNode -asShader displacementShader -name ($AutoTexture_Surface + "_displacementShader")`;
                 string $dispblendColors = `shadingNode -asUtility blendColors -name($AutoTexture_Surface + "_dispblendColors")`;
-                // ãƒ•ã‚¡ã‚¤ãƒ«æ¥ç¶šãƒ†ãƒ³ãƒ—ãƒ¬
+                // ƒtƒ@ƒCƒ‹Ú‘±ƒeƒ“ƒvƒŒ
                 connectAttr -force ($dispPlace2dTexture + ".coverage") ($dispFileTexture + ".coverage");
                 connectAttr -force ($dispPlace2dTexture + ".translateFrame") ($dispFileTexture + ".translateFrame");
                 connectAttr -force ($dispPlace2dTexture + ".rotateFrame") ($dispFileTexture + ".rotateFrame");
@@ -363,7 +363,7 @@ global proc AutoTexture_Viewimages(){
     global string $AutoTexture_BCnode[];
     global string $AutoTexture_Metalnode[];
 
-    if ( (`window -ex AutoTexture_Viewimages_UI`) == true ) deleteUI AutoTexture_Viewimages_UI;//UIãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã‚Œã°æ¶ˆã™
+    if ( (`window -ex AutoTexture_Viewimages_UI`) == true ) deleteUI AutoTexture_Viewimages_UI;//UI‚ª•\¦‚³‚ê‚Ä‚¢‚ê‚ÎÁ‚·
         window -title "images" -tlb true AutoTexture_Viewimages_UI;
 
         columnLayout;
@@ -517,7 +517,7 @@ global proc AutoTexture_Material_Get(){
     }
     // print $mate;
 
-    // UIä½œæˆ
+    // UIì¬
     string $temp = "";
     deleteUI $AutoTexture_tabui;
     $AutoTexture_tabui = `tabLayout -p $AutoTexture_frameui tab`;
@@ -525,7 +525,7 @@ global proc AutoTexture_Material_Get(){
             // string $colum = `columnLayout -adj true -p $AutoTexture_tabui $temp`;
             // $scrlay[$i] = `scrollLayout -cr true -p $AutoTexture_tabui $temp`;
                 columnLayout -adj true -p $AutoTexture_tabui $temp;
-                    // ãƒ™ãƒ¼ã‚¹ã‚«ãƒ©ãƒ¼
+                    // ƒx[ƒXƒJƒ‰[
                     $AutoTexture_frameBaseColor[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "BaseColor" -en true -vis true`;
                         rowLayout -nc 2 -adj 1;
                             // $AutoTexture_ViewBaseColor[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
@@ -558,7 +558,7 @@ global proc AutoTexture_Material_Get(){
                         setParent..;
                     setParent..;
                     
-                    // ãƒ¡ã‚¿ãƒ«ãƒã‚¹
+                    // ƒƒ^ƒ‹ƒlƒX
                     $AutoTexture_frameMetalness[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Metalness" -en true -vis true`;
                         rowLayout -nc 2 -adj 1;
                             // $AutoTexture_ViewMetalness[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
@@ -575,7 +575,7 @@ global proc AutoTexture_Material_Get(){
                         setParent..;
                     setParent..;
 
-                    // ãƒ©ãƒ•ãƒã‚¹
+                    // ƒ‰ƒtƒlƒX
                     $AutoTexture_frameRoughness[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Roughness" -en true -vis true`;
                         rowLayout -nc 2 -adj 1;
                             // $AutoTexture_ViewRoughness[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
@@ -592,7 +592,7 @@ global proc AutoTexture_Material_Get(){
                         setParent..;
                     setParent..;
 
-                    // ãƒãƒ¼ãƒãƒ«
+                    // ƒm[ƒ}ƒ‹
                     $AutoTexture_frameNormal[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Normal" -en true -vis true`;
                         rowLayout -nc 2 -adj 1;
                             // $AutoTexture_ViewNormal[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
@@ -608,7 +608,7 @@ global proc AutoTexture_Material_Get(){
                         setParent..;
                     setParent..;
 
-                    // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤ã‚¹ãƒ¡ãƒ³ãƒˆ
+                    // ƒfƒBƒXƒvƒŒƒCƒXƒƒ“ƒg
                     $AutoTexture_frameDisplacement[$i] = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Displacement" -en true -vis true`;
                         rowLayout -nc 2 -adj 1;
                             // $AutoTexture_ViewDisplacement[$i] = `iconTextButton -i "nodeGrapherUnsoloedLarge.png" -c "AutoTexture_Viewimages()"`;
@@ -650,7 +650,7 @@ global proc AutoTexture_Material_Get(){
         }
     setParent..;
 
-    // ä½œæˆã—ãŸUIã«å€¤ã‚’å–å¾—
+    // ì¬‚µ‚½UI‚É’l‚ğæ“¾
     for($val = 0; $val < $AutoTexture_MaterialCount; $val++){
         string $mate[] = `hyperShade -lun $materialSG[$val]`;
         for($mnode in $mate){
@@ -861,7 +861,7 @@ global proc AutoTexture_rotChange(){
 
     for($val = 0; $val < $AutoTexture_MaterialCount; $val++){
         if($AutoTexture_BCcon == true){
-            // ãƒ™ãƒ¼ã‚¹ã‚«ãƒ©ãƒ¼
+            // ƒx[ƒXƒJƒ‰[
             setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".gamma") `floatSliderGrp -q -v $AutoTexture_BGfs[$val]`;
             setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".hueShift") `floatSliderGrp -q -v $AutoTexture_BHfs[$val]`;
             setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".saturation") `floatSliderGrp -q -v $AutoTexture_BSfs[$val]`;
@@ -870,7 +870,7 @@ global proc AutoTexture_rotChange(){
             setAttr (("*" + $AutoTexture_BCnode[$val] + "*") + ".exposure") `floatSliderGrp -q -v $AutoTexture_BEfs[$val]`;
         }
         if($AutoTexture_Metalcon == true){
-            // ãƒ¡ã‚¿ãƒ«ãƒã‚¹
+            // ƒƒ^ƒ‹ƒlƒX
             setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_MC1fs[$val]`;
@@ -879,7 +879,7 @@ global proc AutoTexture_rotChange(){
             setAttr (("*" + $AutoTexture_Metalnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_MC2fs[$val]`;
         }
         if($AutoTexture_Roughcon == true){
-            // ãƒ©ãƒ•ãƒã‚¹
+            // ƒ‰ƒtƒlƒX
             setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_RC1fs[$val]`;
@@ -888,12 +888,12 @@ global proc AutoTexture_rotChange(){
             setAttr (("*" + $AutoTexture_Roughnode[$val] + "*") + ".color2B") `floatSliderGrp -q -v $AutoTexture_RC2fs[$val]`;
         }
         if($AutoTexture_Norcon == true){
-            // ãƒãƒ¼ãƒãƒ«
+            // ƒm[ƒ}ƒ‹
             setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".strength") `floatSliderGrp -q -v $AutoTexture_NSfs[$val]`;
             setAttr (("*" + $AutoTexture_Nornode[$val] + "*") + ".invertY") `checkBox -q -v $AutoTexture_NIcb[$val]`;
         }
         if($AutoTexture_Dispcon == true){
-            // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤ã‚¹ãƒ¡ãƒ³ãƒˆ
+            // ƒfƒBƒXƒvƒŒƒCƒXƒƒ“ƒg
             setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1R") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1G") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
             setAttr (("*" + $AutoTexture_Dispnodeblend[$val] + "*") + ".color1B") `floatSliderGrp -q -v $AutoTexture_DC1fs[$val]`;
@@ -906,7 +906,7 @@ global proc AutoTexture_rotChange(){
 }
 
 
-// global proc AutoTexture_shader_assign(string $value){//ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã®é¸æŠ
+// global proc AutoTexture_shader_assign(string $value){//ƒVƒF[ƒ_[‚Ì‘I‘ğ
 //     global string $AutoTexture_Apply;
 //     $AutoTexture_Apply = $value;
 // }
@@ -988,7 +988,7 @@ global proc AutoTexture_option(){
     if(`optionVar -ex "extmemory"`) $exttext = `optionVar -q "extmemory"`;
     else $exttext = "png";
 
-    if ( (`window -ex AutoTexture_option_UI`) == true ) deleteUI AutoTexture_option_UI;//UIãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã‚Œã°æ¶ˆã™
+    if ( (`window -ex AutoTexture_option_UI`) == true ) deleteUI AutoTexture_option_UI;//UI‚ª•\¦‚³‚ê‚Ä‚¢‚ê‚ÎÁ‚·
         window -title "option" -h 10 -w 15 -tlb true AutoTexture_option_UI;
         
         columnLayout -adj true;
@@ -1040,11 +1040,11 @@ global proc AutoTexture(){
     if(`optionVar -ex "RBtnmemory"`) $modeSelRBtnDefaultVal = `optionVar -q "RBtnmemory"`;
     else $modeSelRBtnDefaultVal = 1;
 
-    if ( (`window -ex AutoTexture_UI`) == true ) deleteUI AutoTexture_UI;//UIãŒè¡¨ç¤ºã•ã‚Œã¦ã„ã‚Œã°æ¶ˆã™
+    if ( (`window -ex AutoTexture_UI`) == true ) deleteUI AutoTexture_UI;//UI‚ª•\¦‚³‚ê‚Ä‚¢‚ê‚ÎÁ‚·
     window -title "AutoTexture" -h 10 -w 10 -tlb true AutoTexture_UI;
     // scrollLayout -cr true -w 400 -h 245;
-    columnLayout -adj true;//ç¸¦ã«ä¸¦ã¹ã‚‹
-        // frameLayout -collapsable true -cc "AutoTexture_setWindowSize()" -l "assign";//æŠ˜ã‚ŠãŸãŸã¿ -cll
+    columnLayout -adj true;//c‚É•À‚×‚é
+        // frameLayout -collapsable true -cc "AutoTexture_setWindowSize()" -l "assign";//Ü‚è‚½‚½‚İ -cll
             rowLayout -nc 3 -ct3 "left" "left" "right";
                 $modeSelRBtn = `radioButtonGrp 
                     -nrb 2
@@ -1067,11 +1067,11 @@ global proc AutoTexture(){
         // setParent..;
     setParent..;
 
-    // ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿
+    // ƒ}ƒeƒŠƒAƒ‹ƒpƒ‰ƒ[ƒ^
     // $AutoTexture_frameui = `frameLayout -cll true -cc "AutoTexture_setWindowSize()" -l "Material" none`;
     // $AutoTexture_tabui = `tabLayout`;
         // textField -ed false -tx "none" mname;
-        // // ãƒ™ãƒ¼ã‚¹ã‚«ãƒ©ãƒ¼
+        // // ƒx[ƒXƒJƒ‰[
         // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "BaseColor" -en false -vis false frameBaseColor;
         //     rowLayout -nc 2 -adj 2;
         //         text -al "right" -w 90 -l "Gamma";
@@ -1099,7 +1099,7 @@ global proc AutoTexture(){
         //     setParent..;
         // setParent..;
 
-        // // ãƒ¡ã‚¿ãƒ«ãƒã‚¹
+        // // ƒƒ^ƒ‹ƒlƒX
         // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Metalness" -en false -vis false frameMetalness;
         //     rowLayout -nc 2 -adj 2;
         //         text -al "right" -w 90 -l "Color 1";
@@ -1111,7 +1111,7 @@ global proc AutoTexture(){
         //     setParent..;
         // setParent..;
 
-        // // ãƒ©ãƒ•ãƒã‚¹
+        // // ƒ‰ƒtƒlƒX
         // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Roughness" -en false -vis false frameRoughness;
         //     rowLayout -nc 2 -adj 2;
         //         text -al "right" -w 90 -l "Color 1";
@@ -1123,7 +1123,7 @@ global proc AutoTexture(){
         //     setParent..;
         // setParent..;
 
-        // // ãƒãƒ¼ãƒãƒ«
+        // // ƒm[ƒ}ƒ‹
         // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Normal" -en false -vis false frameNormal;
         //     rowLayout -nc 2 -adj 2;
         //         text -al "right" -w 90 -l "Strength";
@@ -1134,7 +1134,7 @@ global proc AutoTexture(){
         //     setParent..;
         // setParent..;
 
-        // // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤ã‚¹ãƒ¡ãƒ³ãƒˆ
+        // // ƒfƒBƒXƒvƒŒƒCƒXƒƒ“ƒg
         // frameLayout -p $AutoTexture_frameui -cll true -cc "AutoTexture_setWindowSize()" -l "Displacement" -en false -vis false frameDisplacement;
         //     rowLayout -nc 2 -adj 2;
         //         text -al "right" -w 90 -l "Color 1";
